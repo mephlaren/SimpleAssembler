@@ -25,9 +25,9 @@
          reg1.value = n;
          functions.push({ func: 'mov', register: reg, value: n });
      } else {
-         registers.push({ register: reg, value: n });
+         registers.push({ register: reg, value: 0 });
          console.log(registers);
-         mov(reg, n);
+         //mov(reg, n); this kills the callstack
      }
  }
 
