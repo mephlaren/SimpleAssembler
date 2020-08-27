@@ -5,7 +5,7 @@
  function createEval(instructionSet) {
      var tmpFunc = "";
      for (set in instructionSet) {
-         if (set == 0) tmpFunc += `'${instructionSet[set]}'`;
+         if (RegExp(/^\p{L}/, 'u').test(instructionSet[set]) == true) set == 1 ? tmpFunc += `,'${ instructionSet[set]}'` : tmpFunc += `'${ instructionSet[set]}'`;
          else tmpFunc += `,${ instructionSet[set]}`;
      }
 
@@ -15,21 +15,36 @@
  function findRegister(reg) {
      for (i of registers) {
          if (i.register == reg) return i;
-         else return null;
+     }
+
+ }
+
+ function mov(reg, n, REGISTERED = false) {
+     reg1 = null;
+     reg2 = null;
+
+     if (RegExp(/^\p{L}/, 'u').test(n)) {
+         reg1 = findRegister(reg);
+         reg2 = findRegister(n);
+
+         if (reg1 && reg2) {
+             reg1.value = reg2.value;
+             functions.push({ func: 'mov', register: reg, value: reg2.value });
+         } else {
+             registers.push({ register: reg, value: 0 });
+             if (!REGISTERED) mov(reg, n, true);
+         }
+     } else {
+         if (reg1) {
+             reg1.value = n;
+             functions.push({ func: 'mov', register: reg, value: n });
+         } else {
+             registers.push({ register: reg, value: 0 });
+             if (!REGISTERED) mov(reg, n, true);
+         }
      }
  }
 
- function mov(reg, n) {
-     reg1 = findRegister(reg);
-     if (reg1) {
-         reg1.value = n;
-         functions.push({ func: 'mov', register: reg, value: n });
-     } else {
-         registers.push({ register: reg, value: 0 });
-         console.log(registers);
-         //mov(reg, n); this kills the callstack
-     }
- }
 
  function inc(reg, n = 1) {
      findRegister(reg).value += n;
@@ -47,8 +62,7 @@
      if (reg != 0) {
          if (offset >= 0) JUMP_FLAG = offset;
          else {
-             var jumpToFuncs = functions[(functions.length) + offset];
-             eval(`${jumpToFuncs.func}(\'${jumpToFuncs.register}\', ${jumpToFuncs.value}`);
+             console.log(functions);
          }
      }
  }
@@ -60,15 +74,19 @@
              instruction = program[instructions].split(' ');
              funcs = instruction.slice(0, 1);
              args = instruction.slice(1);
-             console.log(args);
+
              eval(`${ funcs }(${createEval(args)})`);
          } else { JUMP_FLAG--; }
      }
-     return registers;
+     //return registers;
  }
 
 
+ function simple_assembler(program) {
 
+     return entry(program);
+ }
+ simple_assembler(['mov a 5', 'mov b a', 'inc a', 'dec b']);
 
-
- console.log(entry(['mov a 5', 'jnz a 1', 'inc a', 'mov b 2', 'inc b', 'dec a 2']));
+ console.log(registers);
+ console.log(functions);
