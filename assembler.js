@@ -12,32 +12,29 @@
      return tmpFunc;
  }
 
- function findRegister(reg) {
+ function findRegister(reg, order = -1) {
      for (i of registers) {
          if (i.register == reg) return i;
      }
 
  }
 
- function mov(reg, n, REGISTERED = false) {
-     reg1 = null;
-     reg2 = null;
-
-     if (RegExp(/^\p{L}/, 'u').test(n)) {
-         reg1 = findRegister(reg);
-         reg2 = findRegister(n);
+ function mov(reg, n, REGISTERED = false, order = -1) {
+     var isRegister = RegExp(/^\p{L}/, 'u').test(n);
+     if (isRegister) {
+         let reg1 = findRegister(reg);
+         let reg2 = findRegister(n);
 
          if (reg1 && reg2) {
              reg1.value = reg2.value;
-             functions.push({ func: 'mov', register: reg, value: reg2.value });
          } else {
              registers.push({ register: reg, value: 0 });
              if (!REGISTERED) mov(reg, n, true);
          }
      } else {
+         let reg1 = findRegister(reg);
          if (reg1) {
              reg1.value = n;
-             functions.push({ func: 'mov', register: reg, value: n });
          } else {
              registers.push({ register: reg, value: 0 });
              if (!REGISTERED) mov(reg, n, true);
@@ -46,47 +43,51 @@
  }
 
 
- function inc(reg, n = 1) {
+ function inc(reg, n = 1, order = -1) {
      findRegister(reg).value += n;
-     functions.push({ func: 'inc', register: reg, value: n });
  }
 
- function dec(reg, n = 1) {
+ function dec(reg, n = 1, order = -1) {
      findRegister(reg).value -= n;
-     functions.push({ func: 'dec', register: reg, value: n });
  }
 
- function jnz(reg, offset) {
-     /*jump if not zero. if the registers value is not zero, jump to the offsetted function, else continue*/
-     reg1 = findRegister(reg);
-     if (reg != 0) {
-         if (offset >= 0) JUMP_FLAG = offset;
-         else {
-             console.log(functions);
+ function jnz(reg, offset, order = -1) {
+
+     let reg1 = findRegister(reg);
+     let jumps = order - 1 + offset + 1;
+
+     if (offset < 0) {
+         if (reg1.value != 0) {
+             while (offset < 0) {
+                 functions.splice(order, 0, functions[jumps]);
+                 jumps--;
+                 offset++;
+             }
          }
      }
+
  }
 
 
- function entry(program) {
+ function simple_assembler(program) {
      for (var instructions in program) {
-         if (JUMP_FLAG == 0) {
-             instruction = program[instructions].split(' ');
-             funcs = instruction.slice(0, 1);
-             args = instruction.slice(1);
-
-             eval(`${ funcs }(${createEval(args)})`);
-         } else { JUMP_FLAG--; }
+         instruction = program[instructions].split(' ');
+         funcs = instruction.slice(0, 1)[0];
+         args = instruction.slice(1);
+         functions.push({ order: functions.length + 1, func: funcs, register: args[0], value: args.length == 2 ? args[1] : 1 });
      }
      //return registers;
  }
 
 
- function simple_assembler(program) {
+ function entry(program) {
 
-     return entry(program);
+     return simple_assembler(program);
  }
- simple_assembler(['mov a 5', 'mov b a', 'inc a', 'dec b']);
+ entry(["mov a 5", "inc a", "dec a", "dec a", "inc a 6", "jnz a -3", "mov b a", "dec b 2"]);
 
- console.log(registers);
+ for (i of functions) {
+     eval(`${i.func}(${createEval(Array(i.register, i.value))},order=${i.order})`);
+
+ }
  console.log(functions);
