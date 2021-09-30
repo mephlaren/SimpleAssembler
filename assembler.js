@@ -79,6 +79,10 @@
      //return registers;
  }
 
+ function hellow() { 
+     console.log("hello world");
+ }
+
 
  function entry(program) {
 
